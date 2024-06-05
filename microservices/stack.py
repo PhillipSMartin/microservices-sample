@@ -14,7 +14,12 @@ class MicroservicesSampleStack(Stack):
 
         database = MssDatabase(self, "Database")
         lambda_layers = MssLambdaLayers(self, "LambdaLayers")
-        lambda_runtimes = MssLambdaRuntimes(self, "LambdaRuntimes", productTable=database.productTable, 
+        lambda_runtimes = MssLambdaRuntimes(self, "LambdaRuntimes", 
+            productTable=database.productTable, 
             productTablePrimaryKey=database.productTablePrimaryKey,
+            basketTable=database.basketTable,
+            basketTablePrimaryKey=database.basketTablePrimaryKey,
             boto3Layer=lambda_layers.boto3Layer)
-        api_gateway = MssApiGateway(self, "ApiGateway", productFunction=lambda_runtimes.productFunction)
+        api_gateway = MssApiGateway(self, "ApiGateway", 
+            productFunction=lambda_runtimes.productFunction,
+            basketFunction=lambda_runtimes.basketFunction)
