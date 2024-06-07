@@ -66,7 +66,7 @@ def get_basket(user_name):
         print(item)
         
         if item:
-            return {k: v for k, v in item.items()}
+            return item
         else:
            return {}
 
@@ -88,7 +88,7 @@ def get_all_baskets():
         print(items)
         
         if items:
-            return [{k: v for k, v in item.items()} for item in items]
+            return items
         else:
             return {}
 

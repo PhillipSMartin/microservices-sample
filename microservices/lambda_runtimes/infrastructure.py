@@ -13,6 +13,7 @@ class MssLambdaRuntimes(Construct):
 
         self.productFunction = self.create_product_function(kwargs["productTable"], kwargs["productTablePrimaryKey"], kwargs["boto3Layer"])
         self.basketFunction = self.create_basket_function(kwargs["basketTable"], kwargs["basketTablePrimaryKey"], kwargs["boto3Layer"])
+        self.orderFunction = self.create_order_function()
 
     def create_product_function(self, productTable : ITable, primaryKey : str, layer : _lambda.ILayerVersion):
         productFunction = _lambda_python.PythonFunction(
@@ -43,3 +44,18 @@ class MssLambdaRuntimes(Construct):
 
         basketTable.grant_read_write_data(basketFunction)
         return basketFunction
+
+    def create_order_function(self):
+        orderFunction = _lambda_python.PythonFunction(
+            self, 'orderLambdaFunction',
+            runtime=_lambda.Runtime.PYTHON_3_10,
+            index='index.py',
+            handler='handler',
+            entry=os.path.join(os.path.dirname(__file__) + '/order'),
+ #           environment={ 'DYNAMODB_TABLE_NAME': orderTable.table_name, 'PRIMARY_KEY': primaryKey },
+ #           layers=[layer],
+            function_name="OrderFunction"
+        )
+
+ #       orderTable.grant_read_write_data(orderFunction)
+        return orderFunction

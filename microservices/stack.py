@@ -4,6 +4,7 @@ from aws_cdk import (
 from constructs import Construct
 from microservices.api_gateway.infrastructure import MssApiGateway
 from microservices.database.infrastructure import MssDatabase
+from microservices.event_bus.infrastructure import MssEventBus
 from microservices.lambda_layers.infrastructure import MssLambdaLayers
 from microservices.lambda_runtimes.infrastructure import MssLambdaRuntimes
 
@@ -20,6 +21,9 @@ class MicroservicesSampleStack(Stack):
             basketTable=database.basketTable,
             basketTablePrimaryKey=database.basketTablePrimaryKey,
             boto3Layer=lambda_layers.boto3Layer)
-        api_gateway = MssApiGateway(self, "ApiGateway", 
+        MssApiGateway(self, "ApiGateway", 
             productFunction=lambda_runtimes.productFunction,
             basketFunction=lambda_runtimes.basketFunction)
+        MssEventBus(self, "EventBus",
+            publisherFunction=lambda_runtimes.basketFunction,
+            targetFunction=lambda_runtimes.orderFunction)
