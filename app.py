@@ -2,7 +2,7 @@
 import aws_cdk as cdk
 import os
 
-from microservices.stack import MicroservicesSampleStack
+from src.stack import MicroservicesSampleStack
 
 
 app = cdk.App()

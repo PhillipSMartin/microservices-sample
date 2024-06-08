@@ -11,6 +11,7 @@ class MssApiGateway(Construct) :
 
         self.createProductApi(kwargs["productFunction"])
         self.createBasketApi(kwargs["basketFunction"])
+        self.createOrderApi(kwargs["orderFunction"])
 
     def createProductApi(self, productFunction : PythonFunction):
         # Product microservices api gateway
@@ -69,3 +70,22 @@ class MssApiGateway(Construct) :
         basketCheckout = basket.add_resource('checkout')
         basketCheckout.add_method('POST'); # POST /basket/checkout
             # expected request payload: { username: swn }
+
+    def createOrderApi(self, orderFunction : PythonFunction):
+        # Order microservices api gateway
+        # root name = order
+
+        # GET /order
+        # GET /order/{userName}
+
+        self.orderApi = api.LambdaRestApi(self, 'orderApi',
+            rest_api_name='Order Service',
+            handler=orderFunction,
+            proxy=False
+        )
+        
+        order = self.orderApi.root.add_resource('order')
+        order.add_method('GET') # GET /order
+
+        singleOrder = order.add_resource('{userName}') # order/{userName}
+        singleOrder.add_method('GET') # GET /order/{userName}

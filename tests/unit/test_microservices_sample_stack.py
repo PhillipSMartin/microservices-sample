@@ -1,7 +1,7 @@
 import aws_cdk as core
 import aws_cdk.assertions as assertions
 
-from microservices.stack import MicroservicesSampleStack
+from src.stack import MicroservicesSampleStack
 
 # example tests. To run these tests, uncomment this file along with the example
 # resource in microservices_sample/microservices_sample_stack.py

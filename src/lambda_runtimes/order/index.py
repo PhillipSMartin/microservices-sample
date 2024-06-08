@@ -6,6 +6,6 @@ def handler(event, context):
     return {
         'statusCode': 200,
         'body': json.dumps({
-                'message': f"Hello from Order. You've hit {event.path}" })
+                'message': f"Hello from Order. You've hit {event.get('path')}" })
     }
  

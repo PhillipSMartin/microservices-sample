@@ -2,11 +2,11 @@ from aws_cdk import (
     Stack
 )
 from constructs import Construct
-from microservices.api_gateway.infrastructure import MssApiGateway
-from microservices.database.infrastructure import MssDatabase
-from microservices.event_bus.infrastructure import MssEventBus
-from microservices.lambda_layers.infrastructure import MssLambdaLayers
-from microservices.lambda_runtimes.infrastructure import MssLambdaRuntimes
+from src.api_gateway.infrastructure import MssApiGateway
+from src.database.infrastructure import MssDatabase
+from src.event_bus.infrastructure import MssEventBus
+from src.lambda_layers.infrastructure import MssLambdaLayers
+from src.lambda_runtimes.infrastructure import MssLambdaRuntimes
 
 class MicroservicesSampleStack(Stack):
 
@@ -17,13 +17,13 @@ class MicroservicesSampleStack(Stack):
         lambda_layers = MssLambdaLayers(self, "LambdaLayers")
         lambda_runtimes = MssLambdaRuntimes(self, "LambdaRuntimes", 
             productTable=database.productTable, 
-            productTablePrimaryKey=database.productTablePrimaryKey,
             basketTable=database.basketTable,
-            basketTablePrimaryKey=database.basketTablePrimaryKey,
+            orderTable=database.orderTable,
             boto3Layer=lambda_layers.boto3Layer)
         MssApiGateway(self, "ApiGateway", 
             productFunction=lambda_runtimes.productFunction,
-            basketFunction=lambda_runtimes.basketFunction)
+            basketFunction=lambda_runtimes.basketFunction,
+            orderFunction=lambda_runtimes.orderFunction)
         MssEventBus(self, "EventBus",
             publisherFunction=lambda_runtimes.basketFunction,
             targetFunction=lambda_runtimes.orderFunction)

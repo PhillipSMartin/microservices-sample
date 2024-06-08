@@ -9,8 +9,9 @@ class MssDatabase(Construct):
     def __init__(self, scope: Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id)
 
-        self.productTable, self.productTablePrimaryKey = self.create_product_table();
-        self.basketTable, self.basketTablePrimaryKey = self.create_basket_table();
+        self.productTable = self.create_product_table()
+        self.basketTable = self.create_basket_table()
+        self.orderTable = self.create_order_table()
 
     def create_product_table(self):
         productTable = db.Table(
@@ -23,7 +24,7 @@ class MssDatabase(Construct):
             removal_policy= RemovalPolicy.DESTROY,
             billing_mode= db.BillingMode.PAY_PER_REQUEST         
         )
-        return productTable, "id"
+        return productTable
 
     def create_basket_table(self):
         basketTable = db.Table(
@@ -36,4 +37,21 @@ class MssDatabase(Construct):
             removal_policy= RemovalPolicy.DESTROY,
             billing_mode= db.BillingMode.PAY_PER_REQUEST         
         )
-        return basketTable, "userName"
+        return basketTable
+    
+    def create_order_table(self):
+        orderTable = db.Table(
+            self, 'order',
+            partition_key=db.Attribute(
+                name="userName",
+                type=db.AttributeType.STRING
+            ),
+            sort_key=db.Attribute(
+                name="orderDate",
+                type=db.AttributeType.STRING
+            ),
+            table_name= 'order',
+            removal_policy= RemovalPolicy.DESTROY,
+            billing_mode= db.BillingMode.PAY_PER_REQUEST         
+        )
+        return orderTable
