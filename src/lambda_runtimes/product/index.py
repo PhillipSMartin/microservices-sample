@@ -1,6 +1,7 @@
 from decimal import Decimal
 from botocore.exceptions import ClientError
-from ddb_client import ( product_table, product_key )
+
+import ddb_client as db
 import simplejson as json
 import uuid
 
@@ -54,9 +55,9 @@ def get_product(product_id):
 
     try:
         params = {
-            'Key': { product_key: product_id }
+            'Key': { db.product_key: product_id }
         }
-        response = product_table.get_item(**params)
+        response = db.product_table.get_item(**params)
         
         item = response.get('Item')
         print(item)
@@ -78,7 +79,7 @@ def get_all_products():
     print("getAllProducts")
 
     try:
-        response = product_table.scan()
+        response = db.product_table.scan()
         
         items = response.get('Items')
         print(items)
@@ -102,13 +103,13 @@ def create_product(event):
     try:
         product_request = json.loads(event['body'], parse_float=Decimal)
         product_id = str(uuid.uuid4())
-        product_request[product_key] = product_id
+        product_request[db.product_key] = product_id
 
         params = {
             'Item': product_request
         }
 
-        create_result = product_table.put_item(**params)
+        create_result = db.product_table.put_item(**params)
         
         print(create_result)
         return create_result
@@ -127,11 +128,11 @@ def delete_product(product_id):
     try:
         params = {
             'Key': {
-                product_key: product_id
+                db.product_key: product_id
             }
         }
 
-        delete_result = product_table.delete_item(**params)
+        delete_result = db.product_table.delete_item(**params)
         
         print(delete_result)
         return delete_result
@@ -157,14 +158,14 @@ def update_product(event):
 
         params = {
             'Key': {
-               product_key: event['pathParameters']['id']
+               db.product_key: event['pathParameters']['id']
             },
             'UpdateExpression': update_expression,
             'ExpressionAttributeNames': expression_attribute_names,
             'ExpressionAttributeValues': expression_attribute_values
         }
 
-        update_result = product_table.update_item(**params)
+        update_result = db.product_table.update_item(**params)
         
         print(update_result)
         return update_result
@@ -190,7 +191,7 @@ def get_product_by_category(event):
             }
         }
 
-        response = product_table.scan(**params)
+        response = db.product_table.scan(**params)
         
         items = response.get('Items')
         print(items)

@@ -29,7 +29,7 @@ class MssEventBus(Construct):
         )
 
         event_bus.grant_put_events_to(publisher)
-        publisher.add_environment("EVENT_BUS", event_bus.event_bus_name)
+        publisher.add_environment("EVENT_BUSNAME", event_bus.event_bus_name)
         publisher.add_environment("EVENT_SOURCE", checkout_basket_pattern.source[0] )
         publisher.add_environment("DETAIL_TYPE", checkout_basket_pattern.detail_type[0] )                          
 
