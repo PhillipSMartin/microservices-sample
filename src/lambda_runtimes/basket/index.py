@@ -15,6 +15,7 @@ POST = "POST"
 DELETE = "DELETE"
 CHECKOUT_PATH = "/basket/checkout"
 
+
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """
     Entry point for the AWS Lambda function.
@@ -27,7 +28,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     dict: The response object containing statusCode and body.
     """
     
-    logger.info("request:", json.dumps(event))
+    logger.info("request: %s", json.dumps(event))
 
     try:
         body = None
@@ -54,25 +55,26 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         else:
             raise ValueError(f"Unsupported route: \"{http_method}\"")
 
-        logger.info(body)
-        return {
+        response = {
             'statusCode': 200,
             'body': json.dumps({
                 'message': f'Successfully finished operation: "{http_method}"',
                 'body': body
             })
         }
-
+        logger.info("response: %s", json.dumps(response))
+        return response
+    
     except Exception as e:
-        logger.error("Exception: %s", str(e))
-        return {
+        response = {
             'statusCode': 500,
             'body': json.dumps({
                 'message': "Failed to perform operation",
                 'errorMsg': str(e)
             })
         }
-
+        logger.error("response: %s", json.dumps(response))
+        return response
 
 def get_basket(user_name: str) -> Dict[str, Any]:
     """
@@ -85,18 +87,16 @@ def get_basket(user_name: str) -> Dict[str, Any]:
     dict: A dictionary representing the basket.
     """
 
-    logger.info('getBasket, basketid: "%s"', user_name)
+    logger.info('get_basket, user_name: %s', user_name)
 
     try:
         params = {
-            'Key': {
-                db.basket_key: user_name
-            }
+            'Key': { db.basket_key: user_name }
         }
         response = db.basket_table.get_item(**params)      
         item = response.get('Item')
-        logger.info(item)
         
+        logger.info('get_basket, result: %s', json.dumps(item))       
         return item if item else {}
 
     except ClientError as e:
@@ -107,7 +107,7 @@ def get_basket(user_name: str) -> Dict[str, Any]:
         raise
 
 
-def get_all_baskets():
+def get_all_baskets() -> Dict[str,Any]:
     """
     Retrieve all baskets.
 
@@ -115,14 +115,14 @@ def get_all_baskets():
     dict: A dictionary containing all baskets.
     """
 
-    logger.info("getAllBaskets")
+    logger.info("get_all_baskets")
 
     try:
         response = db.basket_table.scan()      
-        items = response.get('Items')
-        logger.info(items)
+        items = response.get('Items', {})
         
-        return items if items else {}
+        logger.info('get_all_baskets, result: %s', json.dumps(items)) 
+        return items
 
     except ClientError as e:
         logger.error("ClientError: %s", e.response['Error']['Message'])
@@ -132,7 +132,7 @@ def get_all_baskets():
         raise
 
 
-def create_basket(event):
+def create_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     """
     Create a new basket.
 
@@ -143,16 +143,18 @@ def create_basket(event):
     dict: The result of the create operation.
     """
     
-    logging.info('createBasket, event: "%s"', event)
+    logging.info('create_basket')
 
     try:
         basket_request = json.loads(event['body'], parse_float=Decimal)
+        logging.info('create_basket, request: %s', json.dumps(basket_request))
+ 
         params = {
             'Item': basket_request
         }
         create_result = db.basket_table.put_item(**params)       
-        logging.info(create_result)
-
+ 
+        logging.info('create_basket, result: %s', json.dumps(create_result))      
         return create_result
 
     except ClientError as e:
@@ -163,7 +165,7 @@ def create_basket(event):
         raise
 
 
-def delete_basket(user_name):
+def delete_basket(user_name: Dict[str,Any]) -> Dict[str,Any]:
     """
     Delete a basket for a given user.
 
@@ -174,17 +176,15 @@ def delete_basket(user_name):
     dict: The result of the delete operation.
     """
     
-    logging.info('deleteBasket, basketid: "%s"', user_name)
+    logging.info('delete_basket, user_name: %s', user_name)
 
     try:
         params = {
-            'Key': {
-                db.basket_key: user_name
-            }
+            'Key': { db.basket_key: user_name }
         }
         delete_result = db.basket_table.delete_item(**params)       
-        logging.info(delete_result)
 
+        logging.info('delete_basket, result: %s', json.dumps(delete_result)) 
         return delete_result
 
     except ClientError as e:
@@ -195,7 +195,7 @@ def delete_basket(user_name):
         raise
 
 
-def checkout_basket(event):
+def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     """
     Checkout a basket for a given user.
 
@@ -206,15 +206,17 @@ def checkout_basket(event):
     dict: The result of the checkout operation.
     """
     
-    logging.info('checkout basket, event: "%s"', event)  
-
-    event_body = event.get('body', '{}')
-    checkout_request = json.loads(event_body, parse_float=Decimal)
-    if not checkout_request or not checkout_request.get('userName'):
-        raise ValueError(f'userName should exist in checkoutRequest: "{checkout_request}"')
-    user_name = checkout_request.get('userName')
+    logger.info('checkout_basket')
 
     try:
+        event_body = event.get('body', '{}')
+        checkout_request = json.loads(event_body, parse_float=Decimal)
+        logging.info('checkout_basket, request: %s', json.dumps(checkout_request))
+        
+        if not checkout_request or not checkout_request.get('userName'):
+            raise ValueError(f'userName should exist in checkoutRequest: "{checkout_request}"')
+        user_name = checkout_request.get('userName')
+
         basket = get_basket(user_name)
         if not basket:
             raise ValueError(f'No basket found for user "{user_name}"')
@@ -223,6 +225,7 @@ def checkout_basket(event):
         published_event = publish_checkout_basket_event(checkout_payload)
         delete_basket(user_name)
 
+        logging.info('checkout_basket, result: %s', json.dumps(published_event))
         return published_event
 
     except ClientError as e:
@@ -232,7 +235,7 @@ def checkout_basket(event):
         logger.error("Exceptions: %s", str(e))
         raise
     
-def prepare_order_payload(checkout_request, basket):
+def prepare_order_payload(checkout_request: Dict[str,Any], basket: Dict[str,Any]) -> Dict[str,Any]:
     """
     Prepare the payload for order creation.
 
@@ -253,7 +256,7 @@ def prepare_order_payload(checkout_request, basket):
         total_price = sum(Decimal(str(item['price'])) for item in basket['items'])
         checkout_request['totalPrice'] = total_price
         checkout_request.update(basket)
-        logger.info('Successfully prepared order payload: "%s"', checkout_request)
+        logger.info('Successfully prepared order payload: %s', json.dumps(checkout_request))
 
         return checkout_request
        
@@ -261,7 +264,7 @@ def prepare_order_payload(checkout_request, basket):
         logger.error("Exceptions: %s", str(e))
         raise
     
-def publish_checkout_basket_event(checkout_payload):
+def publish_checkout_basket_event(checkout_payload: Dict[str,Any]) -> Dict[str,Any]:
     """
     Publish the checkout event to the event bus.
 
@@ -272,7 +275,7 @@ def publish_checkout_basket_event(checkout_payload):
     dict: The result of the event publish operation.
     """
     
-    logger.info('publish_checkout_basket_event with payload: "%s"', checkout_payload)
+    logger.info('publish_checkout_basket_event, payload: %s', json.dumps(checkout_payload))
 
     try:
         response = eb.client.put_events(
@@ -287,6 +290,7 @@ def publish_checkout_basket_event(checkout_payload):
             ]
         )
 
+        logger.info('publish_checkout_basket_event, response: %s', json.dumps(response))
         return response
     
     except ClientError as e:
