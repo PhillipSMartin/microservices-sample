@@ -145,20 +145,20 @@ def create_product(event: Dict[str,Any]) -> Dict[str,Any]:
     dict: The result of the create operation.
     """
     
-    logging.info('create_product')
+    logger.info('create_product')
 
     try:
         product_request = json.loads(event['body'], parse_float=Decimal)
         product_id = str(uuid.uuid4())
         product_request[db.product_key] = product_id
-        logging.info('create_product, request: %s', json.dumps(product_request))
+        logger.info('create_product, request: %s', json.dumps(product_request))
 
         params = {
             'Item': product_request
         }
         create_result = db.product_table.put_item(**params)       
 
-        logging.info('create_product, result: %s', json.dumps(create_result))      
+        logger.info('create_product, result: %s', json.dumps(create_result))      
         return create_result
 
     except ClientError as e:
@@ -188,7 +188,7 @@ def delete_product(product_id: Dict[str,Any]) -> Dict[str,Any]:
         }
         delete_result = db.product_table.delete_item(**params)   
 
-        logging.info('delete_product, result: %s', json.dumps(delete_result)) 
+        logger.info('delete_product, result: %s', json.dumps(delete_result)) 
         return delete_result
 
     except ClientError as e:
@@ -229,7 +229,7 @@ def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
         }
         update_result = db.product_table.update_item(**params)
         
-        logging.info('update_result, result: %s', json.dumps(update_result)) 
+        logger.info('update_result, result: %s', json.dumps(update_result)) 
         return update_result
 
     except ClientError as e:

@@ -143,18 +143,18 @@ def create_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     dict: The result of the create operation.
     """
     
-    logging.info('create_basket')
+    logger.info('create_basket')
 
     try:
         basket_request = json.loads(event['body'], parse_float=Decimal)
-        logging.info('create_basket, request: %s', json.dumps(basket_request))
+        logger.info('create_basket, request: %s', json.dumps(basket_request))
  
         params = {
             'Item': basket_request
         }
         create_result = db.basket_table.put_item(**params)       
  
-        logging.info('create_basket, result: %s', json.dumps(create_result))      
+        logger.info('create_basket, result: %s', json.dumps(create_result))      
         return create_result
 
     except ClientError as e:
@@ -165,7 +165,7 @@ def create_basket(event: Dict[str,Any]) -> Dict[str,Any]:
         raise
 
 
-def delete_basket(user_name: Dict[str,Any]) -> Dict[str,Any]:
+def delete_basket(user_name: str) -> Dict[str,Any]:
     """
     Delete a basket for a given user.
 
@@ -176,7 +176,7 @@ def delete_basket(user_name: Dict[str,Any]) -> Dict[str,Any]:
     dict: The result of the delete operation.
     """
     
-    logging.info('delete_basket, user_name: %s', user_name)
+    logger.info('delete_basket, user_name: %s', user_name)
 
     try:
         params = {
@@ -184,7 +184,7 @@ def delete_basket(user_name: Dict[str,Any]) -> Dict[str,Any]:
         }
         delete_result = db.basket_table.delete_item(**params)       
 
-        logging.info('delete_basket, result: %s', json.dumps(delete_result)) 
+        logger.info('delete_basket, result: %s', json.dumps(delete_result)) 
         return delete_result
 
     except ClientError as e:
@@ -211,7 +211,7 @@ def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     try:
         event_body = event.get('body', '{}')
         checkout_request = json.loads(event_body, parse_float=Decimal)
-        logging.info('checkout_basket, request: %s', json.dumps(checkout_request))
+        logger.info('checkout_basket, request: %s', json.dumps(checkout_request))
         
         if not checkout_request or not checkout_request.get('userName'):
             raise ValueError(f'userName should exist in checkoutRequest: "{checkout_request}"')
@@ -225,7 +225,7 @@ def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
         published_event = publish_checkout_basket_event(checkout_payload)
         delete_basket(user_name)
 
-        logging.info('checkout_basket, result: %s', json.dumps(published_event))
+        logger.info('checkout_basket, result: %s', json.dumps(published_event))
         return published_event
 
     except ClientError as e:
