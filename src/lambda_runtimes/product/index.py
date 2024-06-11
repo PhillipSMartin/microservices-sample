@@ -27,7 +27,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     Returns:
     dict: The response object containing statusCode and body.
     """
- 
     logger.info("request: %s", json.dumps(event))
 
     try:
@@ -37,8 +36,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         if http_method == GET:
             if event.get('queryStringParameters'):
                 body = get_product_by_category(event)
-            elif event.get('pathParameters') and 'id' in event['pathParameters']:
-                body = get_product(event['pathParameters']['id'])
+            elif event.get('pathParameters') and db.product_key in event['pathParameters']:
+                body = get_product(event['pathParameters'][db.product_key])
             else:
                 body = get_all_products()
 
@@ -46,10 +45,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             body = create_product(event)
 
         elif http_method == DELETE:
-            if event.get('pathParameters') and 'id' in event['pathParameters']:
-                body = delete_product(event['pathParameters']['id'])
+            if event.get('pathParameters') and db.product_key in event['pathParameters']:
+                body = delete_product(event['pathParameters'][db.product_key])
             else:
-                raise ValueError("id must be specified on a DELETE request")
+                raise ValueError(f"{db.product_key} must be specified on a DELETE request")
  
         elif http_method == PUT:
             body = update_product(event)
@@ -67,16 +66,28 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         logger.info("response: %s", json.dumps(response))
         return response
         
-    except Exception as e:
-        response = {
+    except ClientError as e:
+        error_msg = e.response["Error"]["Message"]
+        logger.error("Client Error: %s", error_msg)
+        return {
             'statusCode': 500,
             'body': json.dumps({
                 'message': "Failed to perform operation",
-                'errorMsg': str(e)
+                'errorMsg': error_msg
+            })
+        }  
+    
+    except Exception as e:
+        error_msg = str(e)
+        logger.error("Exception: %s", error_msg)
+        return {
+            'statusCode': 500,
+            'body': json.dumps({
+                'message': "Failed to perform operation",
+                'errorMsg': error_msg
             })
         }
-        logger.error("response: %s", json.dumps(response))
-        return response
+
 
 def get_product(product_id: str) -> Dict[str, Any]:
     """
@@ -88,25 +99,16 @@ def get_product(product_id: str) -> Dict[str, Any]:
     Returns:
     dict: A dictionary representing the product.
     """
-
     logger.info('get_product, product_id: %s', product_id)
 
-    try:
-        params = {
-            'Key': { db.product_key: product_id }
-        }
-        response = db.product_table.get_item(**params)       
-        item = response.get('Item', {})
+    params = {
+        'Key': { db.product_key: product_id }
+    }
+    response = db.product_table.get_item(**params)       
+    item = response.get('Item', {})
 
-        logger.info('get_product, result: %s', json.dumps(item))       
-        return item
-
-    except ClientError as e:
-        logger.info(e.response['Error']['Message'])
-        raise e
-    except Exception as e:
-        logger.info(e)
-        raise e
+    logger.info('get_product, result: %s', json.dumps(item))       
+    return item
 
 
 def get_all_products() -> Dict[str,Any]:
@@ -116,22 +118,13 @@ def get_all_products() -> Dict[str,Any]:
     Returns:
     dict: A dictionary containing all products.
     """
-
     logger.info("get_all_products")
 
-    try:
-        response = db.product_table.scan()      
-        items = response.get('Items', {})
-        
-        logger.info('get_all_products, result: %s', json.dumps(items)) 
-        return items
-
-    except ClientError as e:
-        logger.error("ClientError: %s", e.response['Error']['Message'])
-        raise
-    except Exception as e:
-        logger.error("Exceptions: %s", str(e))
-        raise
+    response = db.product_table.scan()      
+    items = response.get('Items', {})
+    
+    logger.info('get_all_products, result: %s', json.dumps(items)) 
+    return items
 
 
 def create_product(event: Dict[str,Any]) -> Dict[str,Any]:
@@ -143,30 +136,21 @@ def create_product(event: Dict[str,Any]) -> Dict[str,Any]:
 
     Returns:
     dict: The result of the create operation.
-    """
-    
+    """   
     logger.info('create_product')
 
-    try:
-        product_request = json.loads(event['body'], parse_float=Decimal)
-        product_id = str(uuid.uuid4())
-        product_request[db.product_key] = product_id
-        logger.info('create_product, request: %s', json.dumps(product_request))
+    product_request = json.loads(event['body'], parse_float=Decimal)
+    product_id = str(uuid.uuid4())
+    product_request[db.product_key] = product_id
+    logger.info('create_product, request: %s', json.dumps(product_request))
 
-        params = {
-            'Item': product_request
-        }
-        create_result = db.product_table.put_item(**params)       
+    params = {
+        'Item': product_request
+    }
+    create_result = db.product_table.put_item(**params)       
 
-        logger.info('create_product, result: %s', json.dumps(create_result))      
-        return create_result
-
-    except ClientError as e:
-        logger.error("ClientError: %s", e.response['Error']['Message'])
-        raise
-    except Exception as e:
-        logger.error("Exceptions: %s", str(e))
-        raise
+    logger.info('create_product, result: %s', json.dumps(create_result))      
+    return create_result
 
 
 def delete_product(product_id: Dict[str,Any]) -> Dict[str,Any]:
@@ -179,24 +163,15 @@ def delete_product(product_id: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the delete operation.
     """
- 
     logger.info('delete_product, product_id: %s', product_id)
 
-    try:
-        params = {
-            'Key': { db.product_key: product_id }
-        }
-        delete_result = db.product_table.delete_item(**params)   
+    params = {
+        'Key': { db.product_key: product_id }
+    }
+    delete_result = db.product_table.delete_item(**params)   
 
-        logger.info('delete_product, result: %s', json.dumps(delete_result)) 
-        return delete_result
-
-    except ClientError as e:
-        logger.error("ClientError: %s", e.response['Error']['Message'])
-        raise
-    except Exception as e:
-        logger.error("Exceptions: %s", str(e))
-        raise
+    logger.info('delete_product, result: %s', json.dumps(delete_result)) 
+    return delete_result
 
 
 def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
@@ -209,35 +184,26 @@ def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the create operation.
     """
-
     logger.info('update_product')
 
-    try:
-        request_body = json.loads(event['body'], parse_float=Decimal)
-        logger.info('update_product, request: %s', json.dumps(request_body))
+    request_body = json.loads(event['body'], parse_float=Decimal)
+    logger.info('update_product, request: %s', json.dumps(request_body))
 
-        obj_keys = list(request_body.keys())      
-        update_expression = "SET " + ", ".join([f"#key{index} = :value{index}" for index in range(len(obj_keys))])
-        expression_attribute_names = {f"#key{index}": key for index, key in enumerate(obj_keys)}
-        expression_attribute_values = {f":value{index}": {'S': value} if isinstance(value, str) else {'N': str(value)} for index, (key, value) in enumerate(request_body.items())}
+    obj_keys = list(request_body.keys())      
+    update_expression = "SET " + ", ".join([f"#key{index} = :value{index}" for index in range(len(obj_keys))])
+    expression_attribute_names = {f"#key{index}": key for index, key in enumerate(obj_keys)}
+    expression_attribute_values = {f":value{index}": {'S': value} if isinstance(value, str) else {'N': str(value)} for index, (key, value) in enumerate(request_body.items())}
 
-        params = {
-            'Key': { db.product_key: event['pathParameters']['id'] },
-            'UpdateExpression': update_expression,
-            'ExpressionAttributeNames': expression_attribute_names,
-            'ExpressionAttributeValues': expression_attribute_values
-        }
-        update_result = db.product_table.update_item(**params)
-        
-        logger.info('update_result, result: %s', json.dumps(update_result)) 
-        return update_result
-
-    except ClientError as e:
-        logger.error("ClientError: %s", e.response['Error']['Message'])
-        raise
-    except Exception as e:
-        logger.error("Exceptions: %s", str(e))
-        raise
+    params = {
+        'Key': { db.product_key: event['pathParameters'][db.product_key] },
+        'UpdateExpression': update_expression,
+        'ExpressionAttributeNames': expression_attribute_names,
+        'ExpressionAttributeValues': expression_attribute_values
+    }
+    update_result = db.product_table.update_item(**params)
+    
+    logger.info('update_result, result: %s', json.dumps(update_result)) 
+    return update_result
     
 
 def get_product_by_category(event: Dict[str,Any]) -> Dict[str,Any]:
@@ -250,30 +216,21 @@ def get_product_by_category(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The products belonging to the specified category
     """
- 
     logger.info('get_product_by_category')
 
-    try:
-        if 'category' not in event['queryStringParameters']:
-            raise ValueError('Query parameters on url must contain "category"')
-        category = event['queryStringParameters']['category']
-        logger.info('get_product_by_category, category:%s', category) 
+    if 'category' not in event['queryStringParameters']:
+        raise ValueError('Query parameters on url must contain "category"')
+    category = event['queryStringParameters']['category']
+    logger.info('get_product_by_category, category:%s', category) 
 
-        params = {
-            'FilterExpression': 'contains (category, :category)',
-            'ExpressionAttributeValues': { ':category': category }
-        }
+    params = {
+        'FilterExpression': 'contains (category, :category)',
+        'ExpressionAttributeValues': { ':category': category }
+    }
 
-        response = db.product_table.scan(**params)     
-        items = response.get('Items')       
-        item_list = [item for item in items] if items else []
+    response = db.product_table.scan(**params)     
+    items = response.get('Items', {})       
+    item_list = [item for item in items] if items else []
 
-        logger.info('get_product_by_category, return: %s', json.dumps(item_list))
-        return item_list
-
-    except ClientError as e:
-        logger.error("ClientError: %s", e.response['Error']['Message'])
-        raise
-    except Exception as e:
-        logger.error("Exceptions: %s", str(e))
-        raise
+    logger.info('get_product_by_category, return: %s', json.dumps(item_list))
+    return item_list
