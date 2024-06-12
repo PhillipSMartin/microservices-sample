@@ -23,7 +23,8 @@ class MssLambdaRuntimes(Construct):
             handler='handler',
             entry=os.path.join(os.path.dirname(__file__) + '/product'),
             environment={ 'DYNAMODB_TABLE_NAME': productTable.table_name, 
-                         'PRIMARY_KEY': productTable.schema().partition_key.name },
+                         'PRIMARY_KEY': productTable.schema().partition_key.name,
+                         'LOG_LEVEL': 'DEBUG' },
             layers=[layer],
             function_name="ProductFunction"
         )
@@ -39,7 +40,8 @@ class MssLambdaRuntimes(Construct):
             handler='handler',
             entry=os.path.join(os.path.dirname(__file__) + '/basket'),
             environment={ 'DYNAMODB_TABLE_NAME': basketTable.table_name, 
-                         'PRIMARY_KEY': basketTable.schema().partition_key.name },
+                         'PRIMARY_KEY': basketTable.schema().partition_key.name,
+                         'LOG_LEVEL': 'DEBUG' },
             layers=[layer],
             function_name="BasketFunction"
         )
@@ -56,7 +58,8 @@ class MssLambdaRuntimes(Construct):
             entry=os.path.join(os.path.dirname(__file__) + '/order'),
             environment={ 'DYNAMODB_TABLE_NAME': orderTable.table_name, 
                          'PARTITION_KEY': orderTable.schema().partition_key.name, 
-                         'SORT_KEY': orderTable.schema().sort_key.name },
+                         'SORT_KEY': orderTable.schema().sort_key.name,
+                         'LOG_LEVEL': 'DEBUG' },
             layers=[layer],
             function_name="OrderFunction"
         )

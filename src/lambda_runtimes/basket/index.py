@@ -5,10 +5,11 @@ from typing import Any, Dict
 import ddb_client as db
 import event_bridge_client as eb
 import logging
+import os
 import simplejson as json
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 
 GET = "GET"
 POST = "POST"
@@ -116,7 +117,7 @@ def get_all_baskets() -> Dict[str,Any]:
     Returns:
     dict: A dictionary containing all baskets.
     """
-    logger.info("get_all_baskets")
+    logger.debug("get_all_baskets")
 
     response = db.basket_table.scan()      
     items = response.get('Items', {})
@@ -135,7 +136,7 @@ def create_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the create operation.
     """    
-    logger.info('create_basket')
+    logger.debug('create_basket')
 
     basket_request = json.loads(event['body'], parse_float=Decimal)
     logger.info('create_basket, request: %s', json.dumps(basket_request))
@@ -180,7 +181,7 @@ def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the checkout operation.
     """   
-    logger.info('checkout_basket')
+    logger.debug('checkout_basket')
 
     event_body = event.get('body', '{}')
     checkout_request = json.loads(event_body, parse_float=Decimal)
@@ -213,7 +214,7 @@ def prepare_order_payload(checkout_request: Dict[str,Any], basket: Dict[str,Any]
     Returns:
     dict: The prepared order payload.
     """   
-    logger.info("prepare_order_payload")
+    logger.debug("prepare_order_payload")
 
     if not ('items' in basket and isinstance(basket['items'], list) and basket['items']):
         raise ValueError( f'Basket should contain a list of items: "{basket}"')

@@ -4,11 +4,12 @@ from typing import Any, Dict
 
 import ddb_client as db
 import logging
+import os
 import simplejson as json
 import uuid
 
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 
 GET = "GET"
 POST = "POST"
@@ -118,7 +119,7 @@ def get_all_products() -> Dict[str,Any]:
     Returns:
     dict: A dictionary containing all products.
     """
-    logger.info("get_all_products")
+    logger.debug("get_all_products")
 
     response = db.product_table.scan()      
     items = response.get('Items', {})
@@ -137,7 +138,7 @@ def create_product(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the create operation.
     """   
-    logger.info('create_product')
+    logger.debug('create_product')
 
     product_request = json.loads(event['body'], parse_float=Decimal)
     product_id = str(uuid.uuid4())
@@ -184,7 +185,7 @@ def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the create operation.
     """
-    logger.info('update_product')
+    logger.debug('update_product')
 
     request_body = json.loads(event['body'], parse_float=Decimal)
     logger.info('update_product, request: %s', json.dumps(request_body))
@@ -216,7 +217,7 @@ def get_product_by_category(event: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The products belonging to the specified category
     """
-    logger.info('get_product_by_category')
+    logger.debug('get_product_by_category')
 
     if 'category' not in event['queryStringParameters']:
         raise ValueError('Query parameters on url must contain "category"')
