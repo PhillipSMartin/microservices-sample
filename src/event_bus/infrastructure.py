@@ -1,6 +1,8 @@
 from aws_cdk import (
     aws_events as events,
-    aws_events_targets as targets
+    aws_events_targets as targets,
+    aws_lambda as _lambda,
+    aws_sqs as sqs
 )
 from constructs import Construct
 
@@ -8,8 +10,9 @@ class MssEventBus(Construct):
     def __init__(self, scope: Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id)
        
-        publisher = kwargs["publisherFunction"]
-        target = kwargs["targetFunction"]
+        publisher = kwargs["publisher"]
+        target_queue = kwargs.get("targetQueue", None)
+        target_function = kwargs.get("targetFunction", None)
 
         event_bus = events.EventBus(
             self, "MssEventBus", 
@@ -33,5 +36,9 @@ class MssEventBus(Construct):
         publisher.add_environment("EVENT_SOURCE", checkout_basket_pattern.source[0] )
         publisher.add_environment("DETAIL_TYPE", checkout_basket_pattern.detail_type[0] )                          
 
-        checkout_basket_rule.add_target(targets.LambdaFunction( target ))
-
+        if target_function:
+            checkout_basket_rule.add_target(targets.LambdaFunction( target_function ))
+        elif target_queue:
+            checkout_basket_rule.add_target(targets.SqsQueue( target_queue ))
+        else:
+            raise ValueError("Must specify either targetFunction or targetQueue for MssEventBus")

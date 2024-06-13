@@ -7,6 +7,7 @@ from src.database.infrastructure import MssDatabase
 from src.event_bus.infrastructure import MssEventBus
 from src.lambda_layers.infrastructure import MssLambdaLayers
 from src.lambda_runtimes.infrastructure import MssLambdaRuntimes
+from src.queue.infrastructure import MssQueues
 
 class MicroservicesSampleStack(Stack):
 
@@ -20,10 +21,12 @@ class MicroservicesSampleStack(Stack):
             basketTable=database.basketTable,
             orderTable=database.orderTable,
             boto3Layer=lambda_layers.boto3Layer)
+        queues = MssQueues(self, "Queues",
+            consumer=lambda_runtimes.orderFunction)
         MssApiGateway(self, "ApiGateway", 
             productFunction=lambda_runtimes.productFunction,
             basketFunction=lambda_runtimes.basketFunction,
             orderFunction=lambda_runtimes.orderFunction)
         MssEventBus(self, "EventBus",
-            publisherFunction=lambda_runtimes.basketFunction,
-            targetFunction=lambda_runtimes.orderFunction)
+            publisher=lambda_runtimes.basketFunction,
+            targetQueue=queues.order_queue)

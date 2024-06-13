@@ -100,7 +100,7 @@ def get_product(product_id: str) -> Dict[str, Any]:
     Returns:
     dict: A dictionary representing the product.
     """
-    logger.info('get_product, product_id: %s', product_id)
+    logger.debug('get_product, product_id: %s', product_id)
 
     params = {
         'Key': { db.product_key: product_id }
@@ -108,7 +108,7 @@ def get_product(product_id: str) -> Dict[str, Any]:
     response = db.product_table.get_item(**params)       
     item = response.get('Item', {})
 
-    logger.info('get_product, result: %s', json.dumps(item))       
+    logger.debug('get_product, result: %s', json.dumps(item))       
     return item
 
 
@@ -124,7 +124,7 @@ def get_all_products() -> Dict[str,Any]:
     response = db.product_table.scan()      
     items = response.get('Items', {})
     
-    logger.info('get_all_products, result: %s', json.dumps(items)) 
+    logger.debug('get_all_products, result: %s', json.dumps(items)) 
     return items
 
 
@@ -150,7 +150,7 @@ def create_product(event: Dict[str,Any]) -> Dict[str,Any]:
     }
     create_result = db.product_table.put_item(**params)       
 
-    logger.info('create_product, result: %s', json.dumps(create_result))      
+    logger.debug('create_product, result: %s', json.dumps(create_result))      
     return create_result
 
 
@@ -164,14 +164,14 @@ def delete_product(product_id: Dict[str,Any]) -> Dict[str,Any]:
     Returns:
     dict: The result of the delete operation.
     """
-    logger.info('delete_product, product_id: %s', product_id)
+    logger.debug('delete_product, product_id: %s', product_id)
 
     params = {
         'Key': { db.product_key: product_id }
     }
     delete_result = db.product_table.delete_item(**params)   
 
-    logger.info('delete_product, result: %s', json.dumps(delete_result)) 
+    logger.debug('delete_product, result: %s', json.dumps(delete_result)) 
     return delete_result
 
 
@@ -188,7 +188,7 @@ def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
     logger.debug('update_product')
 
     request_body = json.loads(event['body'], parse_float=Decimal)
-    logger.info('update_product, request: %s', json.dumps(request_body))
+    logger.debug('update_product, request: %s', json.dumps(request_body))
 
     obj_keys = list(request_body.keys())      
     update_expression = "SET " + ", ".join([f"#key{index} = :value{index}" for index in range(len(obj_keys))])
@@ -203,7 +203,7 @@ def update_product(event: Dict[str,Any]) -> Dict[str,Any]:
     }
     update_result = db.product_table.update_item(**params)
     
-    logger.info('update_result, result: %s', json.dumps(update_result)) 
+    logger.debug('update_result, result: %s', json.dumps(update_result)) 
     return update_result
     
 
@@ -230,8 +230,7 @@ def get_product_by_category(event: Dict[str,Any]) -> Dict[str,Any]:
     }
 
     response = db.product_table.scan(**params)     
-    items = response.get('Items', {})       
-    item_list = [item for item in items] if items else []
+    items = response.get('Items', [])       
 
-    logger.info('get_product_by_category, return: %s', json.dumps(item_list))
-    return item_list
+    logger.debug('get_product_by_category, return: %s', json.dumps(items))
+    return items

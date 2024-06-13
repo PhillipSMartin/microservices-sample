@@ -1,6 +1,6 @@
 from botocore.exceptions import ClientError
-from datetime import datetime
-from typing import Any, Dict
+from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 import ddb_client as db
 import logging
@@ -27,11 +27,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
  
     logger.info("request: %s", json.dumps(event))
 
-    if event.get('detail-type'):
+    if 'Records' in event:
+        try:
+            sqs_invocation(event)
+
+        except ClientError as e:
+            logger.error("Client Error: %s", e.response["Error"]["Message"])
+            raise
+  
+        except Exception as e:
+            logger.error("Exception: %s", str(e))
+            raise  
+
+    elif 'detail-type' in event:
         try:
             event_bridge_invocation(event)
 
-        # errors should send event to dead-letter queue
         except ClientError as e:
             logger.error("Client Error: %s", e.response["Error"]["Message"])
             raise
@@ -74,7 +85,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'errorMsg': error_msg
                 })
             }
-    
+
+
+def sqs_invocation(event: List[Dict[str, Any]]) -> None:
+    """
+    Handle async invocation from SQS.
+
+    Parameters:
+    event (dict): A list of sqs messages containing orders.
+    """
+    logger.debug('sqs_invocation')
+    for record in event.get('Records', []):
+        logger.debug(f'Record: {record}')
+
+        checkoutEventRequest = json.loads(record.get("body", {}))
+        create_order(checkoutEventRequest.get("detail", {})) 
+
 
 def event_bridge_invocation(event: Dict[str, Any]) -> None:
     """
@@ -126,7 +152,7 @@ def create_order(basket_checkout_request: Dict[str, Any]) -> Dict[str, Any]:
     """
     logger.debug("create_order")
 
-    now = datetime.now()
+    now = datetime.now(timezone.utc)
     basket_checkout_request["orderDate"] = now.isoformat()
     logger.info('create_order, request: %s', json.dumps(basket_checkout_request))
 
@@ -135,7 +161,7 @@ def create_order(basket_checkout_request: Dict[str, Any]) -> Dict[str, Any]:
     }
     create_result = db.order_table.put_item(**params)       
 
-    logger.info('create_order, result: %s', json.dumps(create_result))      
+    logger.debug('create_order, result: %s', json.dumps(create_result))      
     return create_result
 
 
@@ -169,7 +195,7 @@ def get_order(event: Dict[str, Any]) -> Dict[str, Any]:
     response = db.product_table.query(**params)     
     items = response.get('Items', [])       
 
-    logger.info('get_product_by_category, return: %s', json.dumps(items))
+    logger.debug('get_order, return: %s', json.dumps(items))
     return items
 
 
@@ -185,6 +211,5 @@ def get_all_orders() -> Dict[str,Any]:
     response = db.order_table.scan()      
     items = response.get('Items', [])
     
-    logger.info('get_all_orders, result: %s', json.dumps(items)) 
+    logger.debug('get_all_orders, result: %s', json.dumps(items)) 
     return items
- 

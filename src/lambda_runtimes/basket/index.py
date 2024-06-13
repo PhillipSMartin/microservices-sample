@@ -98,7 +98,7 @@ def get_basket(user_name: str) -> Dict[str, Any]:
     Returns:
     dict: A dictionary representing the basket.
     """
-    logger.info('get_basket, user_name: %s', user_name)
+    logger.debug('get_basket, user_name: %s', user_name)
 
     params = {
         'Key': { db.basket_key: user_name }
@@ -106,7 +106,7 @@ def get_basket(user_name: str) -> Dict[str, Any]:
     response = db.basket_table.get_item(**params)      
     item = response.get('Item')
     
-    logger.info('get_basket, result: %s', json.dumps(item))       
+    logger.debug('get_basket, result: %s', json.dumps(item))       
     return item if item else {}
 
 
@@ -122,7 +122,7 @@ def get_all_baskets() -> Dict[str,Any]:
     response = db.basket_table.scan()      
     items = response.get('Items', {})
     
-    logger.info('get_all_baskets, result: %s', json.dumps(items)) 
+    logger.debug('get_all_baskets, result: %s', json.dumps(items)) 
     return items
 
 
@@ -139,14 +139,14 @@ def create_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     logger.debug('create_basket')
 
     basket_request = json.loads(event['body'], parse_float=Decimal)
-    logger.info('create_basket, request: %s', json.dumps(basket_request))
+    logger.debug('create_basket, request: %s', json.dumps(basket_request))
 
     params = {
         'Item': basket_request
     }
     create_result = db.basket_table.put_item(**params)       
 
-    logger.info('create_basket, result: %s', json.dumps(create_result))      
+    logger.debug('create_basket, result: %s', json.dumps(create_result))      
     return create_result
 
 
@@ -160,14 +160,14 @@ def delete_basket(user_name: str) -> Dict[str,Any]:
     Returns:
     dict: The result of the delete operation.
     """   
-    logger.info('delete_basket, user_name: %s', user_name)
+    logger.debug('delete_basket, user_name: %s', user_name)
 
     params = {
         'Key': { db.basket_key: user_name }
     }
     delete_result = db.basket_table.delete_item(**params)       
 
-    logger.info('delete_basket, result: %s', json.dumps(delete_result)) 
+    logger.debug('delete_basket, result: %s', json.dumps(delete_result)) 
     return delete_result
 
 
@@ -185,7 +185,7 @@ def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
 
     event_body = event.get('body', '{}')
     checkout_request = json.loads(event_body, parse_float=Decimal)
-    logger.info('checkout_basket, request: %s', json.dumps(checkout_request))
+    logger.debug('checkout_basket, request: %s', json.dumps(checkout_request))
     
     if not checkout_request or not checkout_request.get(db.basket_key):
         raise ValueError(f'{db.basket_key} should exist in checkoutRequest: "{checkout_request}"')
@@ -199,7 +199,7 @@ def checkout_basket(event: Dict[str,Any]) -> Dict[str,Any]:
     published_event = publish_checkout_basket_event(checkout_payload)
     delete_basket(user_name)
 
-    logger.info('checkout_basket, result: %s', json.dumps(published_event))
+    logger.debug('checkout_basket, result: %s', json.dumps(published_event))
     return published_event
 
     
@@ -222,7 +222,7 @@ def prepare_order_payload(checkout_request: Dict[str,Any], basket: Dict[str,Any]
     total_price = sum(Decimal(str(item['price'])) for item in basket['items'])
     checkout_request['totalPrice'] = total_price
     checkout_request.update(basket)
-    logger.info('Successfully prepared order payload: %s', json.dumps(checkout_request))
+    logger.debug('Successfully prepared order payload: %s', json.dumps(checkout_request))
 
     return checkout_request
        
@@ -251,6 +251,6 @@ def publish_checkout_basket_event(checkout_payload: Dict[str,Any]) -> Dict[str,A
         ]
     )
 
-    logger.info('publish_checkout_basket_event, response: %s', json.dumps(response))
+    logger.debug('publish_checkout_basket_event, response: %s', json.dumps(response))
     return response
 
